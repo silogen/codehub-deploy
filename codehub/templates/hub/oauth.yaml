@@ -1,0 +1,8 @@
+
+    JupyterHub:
+      authenticator_class: github
+    GitHubOAuthenticator:
+      client_id: "{{GITHUB_OAUTH_CLIENT_ID}}"
+      client_secret: "{{GITHUB_OAUTH_CLIENT_SECRET}}"
+      oauth_callback_url: "https://{{HOST_NAME}}/hub/oauth_callback"
+      

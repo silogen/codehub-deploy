@@ -1,0 +1,27 @@
+
+scheduling:
+  userScheduler:
+    enabled: true
+  podPriority:
+    enabled: true
+  # faster startup for users if they can take over placeholder pods
+  userPlaceholder:
+    enabled: true
+    replicas: {{PLACEHOLDER_PODS}}
+  userPods:
+    nodeAffinity:
+      matchNodePurpose: ignore
+
+# shutting down servers when not used
+cull:
+  enabled: true
+  timeout: 3600
+  every: 300
+
+# pre-pull docker images for faster user start times (can significantly increase helm install/upgrade times)
+prePuller:
+  hook:
+    enabled: true
+  continuous:
+    enabled: true
+    

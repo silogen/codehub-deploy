@@ -1,0 +1,18 @@
+services:
+  term:
+    container_name: codehub-deployment-term
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./codehub:/app/codehub
+      - ./deployments:/app/deployments
+      - ./secrets:/app/secrets
+      - ./utils:/app/utils
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Interactive mode for shell access
+    stdin_open: true
+    tty: true
+    # Clean up the container when stopped
+    restart: "no"

@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+*$py.class
+.codehub
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# VS Code
+.vscode
+
+# Secrets and deployments (these will be mounted)
+secrets/*
+deployments/*
+
+# OS
+.DS_Store

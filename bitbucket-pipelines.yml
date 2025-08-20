@@ -1,0 +1,22 @@
+image: python:3.9
+
+definitions:
+  caches:
+    pre-commit:
+      key:
+        files:
+          - .pre-commit-config.yaml
+      path: ~/.cache/pre-commit
+
+pipelines:
+  pull-requests:
+    "**":
+      - step:
+          name: CI
+          caches:
+            - pip
+            - pre-commit
+          script:
+            - pip install --upgrade pip
+            - pip install pre-commit
+            - pre-commit run --all-files

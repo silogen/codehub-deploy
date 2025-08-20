@@ -1,0 +1,4 @@
+
+    Authenticator:
+      admin_users: {{HUB_ADMINS}}
+      allowed_users: dummy

@@ -1,0 +1,46 @@
+
+singleuser:
+  # Define image to be used for notebook servers
+  image:
+    name: {{DOCKER_IMAGE}}
+    tag: {{DOCKER_IMAGE_TAG}}
+    pullPolicy:
+    pullSecrets: [ '{{IMAGE_PULL_SECRET}}' ]
+  # Define storage to be used for notebook servers
+  storage:
+    type: static
+    static:
+      pvcName: pv-claim-personal
+      subPath: {{CLUSTER_NAME}}/home/{unescaped_username}
+    extraVolumes:
+      - name: pv-volume-shared
+        persistentVolumeClaim:
+          claimName: pv-claim-shared
+    extraVolumeMounts:
+      - name: pv-volume-shared
+        mountPath: /efs
+        subPath: {{CLUSTER_NAME}}
+  extraEnv:
+    CHOWN_HOME: "yes"
+    CHOWN_HOME_OPTS: '-R'
+    GRANT_SUDO: "yes"
+  allowPrivilegeEscalation: True
+  defaultUrl: '/tree/'
+  cmd:
+    - jupyterhub-singleuser
+    - '--no-browser'
+  lifecycleHooks:
+    postStart:
+      exec:
+        command:
+          - "sudo" 
+          - "/temp_conf/startup_hook.sh" 
+          - "{{SUDOERS}}"
+  # Define user resource constraints
+  cpu:
+    limit: {{VCPU_USER_LIMIT}}
+    guarantee: {{VCPU_USER_GUARANTEE}}
+  memory:
+    limit: {{RAM_USER_LIMIT}}
+    guarantee: {{RAM_USER_GUARANTEE}}
+    

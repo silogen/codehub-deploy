@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+
+# VS Code
+settings.json
+
+# Deployments
+**/config/deployments/*
+
+# Python
+__pycache__
+*.egg*
+
+# GCP
+service-account.json
+cluster_ca_cert
+
+# Secrets
+.secret_env
+
+# Secrets
+**/secrets/*/*
+_CERTS
+
+# Deployments
+**/deployments/*
+
+!/**/.gitkeep
+
+# pyenv
+.codehub
+
+# LSP config
+pyrightconfig.json

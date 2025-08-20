@@ -1,0 +1,7 @@
+
+  https:
+    enabled: true
+    hosts:
+      - {{HOST_NAME}}
+    letsencrypt:
+      contactEmail: {{CONTACT_EMAIL}}

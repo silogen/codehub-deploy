@@ -1,0 +1,6 @@
+gcp_project_name="{{GCP_PROJECT_NAME}}"
+clustername="{{CLUSTER_NAME}}"
+region="{{REGION}}"
+zone="{{ZONE}}"
+machine_type="{{MACHINE_TYPE}}"
+gcp_sa_path="{{GCP_SA_PATH}}"

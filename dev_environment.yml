@@ -1,0 +1,8 @@
+name: codehub
+channels: 
+  - conda-forge
+dependencies:
+  - python=3.9.10
+  - pip
+  - pip:
+    - -r dev_requirements.txt
