@@ -42,7 +42,10 @@ def create_deploy(
     placeholder_replacements["SUDOERS"] = " ".join(admins)
 
     placeholder_replacements["REGISTRY_HOSTNAME"] = cloud_state.docker_registry_hostname
-    placeholder_replacements["REGISTRY_PASSWORD"] = cloud_state.hub_sa_key
+    # The spaces after newline are important for the indentation in the yaml file
+    placeholder_replacements["REGISTRY_PASSWORD"] = cloud_state.hub_sa_key.replace(
+        "\n", "\n    "
+    )
     placeholder_replacements["DOCKER_IMAGE"] = cloud_state.docker_image
 
     if "DOCKER_IMAGE_TAG" not in placeholder_replacements:
