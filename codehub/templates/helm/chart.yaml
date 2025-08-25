@@ -1,0 +1,9 @@
+repo:
+  url: https://hub.jupyter.org/helm-chart/
+  repo_name: jupyterhub
+install:
+  release: jhub
+  namespace: jhub
+  region: {{REGION}}
+  chart_name: jupyterhub
+  chart_version: 4.2.0
