@@ -50,7 +50,7 @@ def create_deploy(
 
     __add_config_content(hub_deploy_dir, template_fp, placeholder_replacements)
 
-    __download_helm_chart(helm_deploy_dir)
+    __add_helm_chart_config(helm_deploy_dir)
 
 
 def __get_config_fps(https=None, oauth=None):
@@ -91,40 +91,9 @@ def __build_template(hub_deploy_dir, config_fps):
     return output_fp
 
 
-def __download_helm_chart(helm_deploy_dir):
+def __add_helm_chart_config(helm_deploy_dir):
     load_dotenv()
 
-    repo_template_fp = os.path.join(STRUCTURE["templates"]["helm"], "repo.yaml")
-    repo_deploy_fp = os.path.join(helm_deploy_dir, "repo.yaml")
+    repo_template_fp = os.path.join(STRUCTURE["templates"]["helm"], "chart.yaml")
+    repo_deploy_fp = os.path.join(helm_deploy_dir, "chart.yaml")
     copy_file(repo_template_fp, repo_deploy_fp)
-
-    k8s_conf = read_yaml(repo_deploy_fp)
-    jupyterhub_url = k8s_conf["url"]
-    k8s_hash = k8s_conf["hash"]
-
-    jupyterhub_repo = os.path.join(helm_deploy_dir, "jupyterhub_repo")
-    helm_chart = os.path.join(helm_deploy_dir, "helm-chart")
-
-    cmds = [
-        ["git", "clone", jupyterhub_url, jupyterhub_repo],
-        ["cd", jupyterhub_repo, "&&", "git", "reset", "--hard", k8s_hash],
-        ["mv", os.path.join(jupyterhub_repo, "jupyterhub"), helm_chart],
-        ["rm", "-rf", os.path.join(jupyterhub_repo)],
-    ]
-
-    for cmd in cmds:
-        run_cmd(cmd)
-
-    files_to_replace = ["Chart.yaml", "values.yaml"]
-    for fn in files_to_replace:
-        fp = os.path.join(helm_chart, fn)
-        with open(fp) as f:
-            newText = (
-                f.read()
-                .replace("set.by.chartpress", "2.0.0")
-                .replace("set-by-chartpress", "2.0.0")
-            )
-        with open(fp, "w") as f:
-            f.write(newText)
-
-    return helm_chart
