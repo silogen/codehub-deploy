@@ -82,7 +82,9 @@ def upgrade(name, admins, https=None, client_id=None, client_secret=None):
     )
     cloud_state = terraform_output(cloud_dir=cloud_dir)
 
-    last_helm_install = read_yaml(os.path.join(old_deploy_dir, "helm", "install.yaml"))
+    last_helm_install = read_yaml(os.path.join(old_deploy_dir, "helm", "chart.yaml"))[
+        "install"
+    ]
 
     __upgrade_helm_chart(
         name,
