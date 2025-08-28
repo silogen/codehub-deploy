@@ -74,9 +74,11 @@ def upgrade(config: UpgradeConfig):
         deploy_config,
         config.hub_config,
     )
-    install_helm_chart(deploy_config, upgrade=True)
 
     authenticate_k8s_GKE(config.name)
+
+    install_helm_chart(deploy_config, upgrade=True)
+
     wait_for_hub_to_get_ready(k8s_dir)
 
 
