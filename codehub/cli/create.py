@@ -13,7 +13,7 @@ from codehub.cli.config import STRUCTURE, CreateConfig, DeployConfig, OAuthConfi
 from codehub.cli.gcp.helpers import authenticate_k8s_GKE
 from codehub.cli.k8s.create import create_k8s_resources
 from codehub.cli.helm.create import create_deploy
-from codehub.cli.helm.install import install_helm_chart, upgrade_helm_chart
+from codehub.cli.helm.install import install_helm_chart
 from codehub.cli.helpers import get_cloud_dir, get_latest_deployment, read_yaml
 from codehub.cli.manage import wait_for_hub_to_get_ready, get_ip
 import kubernetes.client.rest  # Add this import for the exception handling
@@ -51,10 +51,8 @@ def create(config: CreateConfig):
 
     __create_k8s_resources(deploy_config)
 
-    __install_helm_chart(
-        deploy_config,
-        admins=config.admins,
-    )
+    __create_deploy(deploy_config, admins=config.admins)
+    install_helm_chart(deploy_config, upgrade=False)
 
     wait_for_hub_to_get_ready(k8s_dir)
 
@@ -74,12 +72,13 @@ def upgrade(name, admins, https=None, oauth_config: Optional[OAuthConfig] = None
     ]
     deploy_config = DeployConfig(name, region, helm_dir, hub_dir, k8s_dir, cloud_state)
 
-    __upgrade_helm_chart(
+    __create_deploy(
         deploy_config,
         admins=admins,
         https=https,
         oauth_config=oauth_config,
     )
+    install_helm_chart(deploy_config, upgrade=True)
 
     authenticate_k8s_GKE(name)
     wait_for_hub_to_get_ready(k8s_dir)
@@ -131,30 +130,6 @@ def __create_k8s_resources(deploy_config: DeployConfig):
         else:
             # Re-raise the exception if it's not a "resource already exists" error
             raise
-
-
-def __install_helm_chart(
-    deploy_config: DeployConfig,
-    admins,
-):
-    __create_deploy(deploy_config, admins)
-    install_helm_chart(deploy_config)
-
-
-def __upgrade_helm_chart(
-    deploy_config: DeployConfig,
-    admins,
-    https=None,
-    oauth_config: Optional[OAuthConfig] = None,
-):
-    __create_deploy(
-        deploy_config,
-        admins=admins,
-        https=https,
-        oauth_config=oauth_config,
-    )
-
-    upgrade_helm_chart(deploy_config)
 
 
 def __create_deploy(

@@ -3,15 +3,7 @@ from codehub.cli.helpers import run_cmd, read_yaml, fill_file_placeholders
 from codehub.cli.config import STRUCTURE, DeployConfig
 
 
-def install_helm_chart(deploy_config: DeployConfig):
-    __upgrade_or_install_helm_chart(deploy_config, upgrade=False)
-
-
-def upgrade_helm_chart(deploy_config: DeployConfig):
-    __upgrade_or_install_helm_chart(deploy_config, upgrade=True)
-
-
-def __upgrade_or_install_helm_chart(deploy_config: DeployConfig, upgrade=False):
+def install_helm_chart(deploy_config: DeployConfig, *, upgrade: bool):
     chart_template_fp = os.path.join(STRUCTURE["templates"]["helm"], "chart.yaml")
     chart_deploy_fp = os.path.join(deploy_config.helm_dir, "chart.yaml")
 
