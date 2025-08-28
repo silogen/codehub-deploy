@@ -2,6 +2,7 @@ import datetime
 import os
 import logging
 import json
+from typing import Optional
 from codehub.cli.gcp.terraform import (
     TerraformOutput,
     setup_terraform,
@@ -9,7 +10,7 @@ from codehub.cli.gcp.terraform import (
     terraform_output,
 )
 from distutils.dir_util import copy_tree
-from codehub.cli.config import STRUCTURE, CreateConfig
+from codehub.cli.config import STRUCTURE, CreateConfig, OAuthConfig
 from codehub.cli.gcp.helpers import authenticate_k8s_GKE
 from codehub.cli.k8s.create import create_k8s_resources
 from codehub.cli.helm.create import create_deploy
@@ -68,7 +69,7 @@ def create(config: CreateConfig):
     return get_ip(config.name, k8s_dir)
 
 
-def upgrade(name, admins, https=None, client_id=None, client_secret=None):
+def upgrade(name, admins, https=None, oauth_config: Optional[OAuthConfig] = None):
     old_deploy_dir = get_latest_deployment(name=name)
 
     helm_dir, hub_dir, k8s_dir, cloud_dir = __upgrade_deploy_structure(
@@ -88,8 +89,7 @@ def upgrade(name, admins, https=None, client_id=None, client_secret=None):
         cloud_state=cloud_state,
         admins=admins,
         https=https,
-        client_id=client_id,
-        client_secret=client_secret,
+        oauth_config=oauth_config,
     )
 
     authenticate_k8s_GKE(name)
@@ -169,8 +169,7 @@ def __upgrade_helm_chart(
     cloud_state: TerraformOutput,
     admins,
     https=None,
-    client_id=None,
-    client_secret=None,
+    oauth_config: Optional[OAuthConfig] = None,
 ):
     __create_deploy(
         name,
@@ -179,8 +178,7 @@ def __upgrade_helm_chart(
         cloud_state=cloud_state,
         admins=admins,
         https=https,
-        client_id=client_id,
-        client_secret=client_secret,
+        oauth_config=oauth_config,
     )
 
     upgrade_helm_chart(
@@ -195,8 +193,7 @@ def __create_deploy(
     cloud_state: TerraformOutput,
     admins,
     https=None,
-    client_id=None,
-    client_secret=None,
+    oauth_config: Optional[OAuthConfig] = None,
 ):
     contact_email = None
     with open(STRUCTURE["secrets"]["gcp"]["sa"], "rt") as f:
@@ -210,6 +207,5 @@ def __create_deploy(
         hub_deploy_dir=hub_deploy_dir,
         cloud_state=cloud_state,
         https=https,
-        client_id=client_id,
-        client_secret=client_secret,
+        oauth_config=oauth_config,
     )

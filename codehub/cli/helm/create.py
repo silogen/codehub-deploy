@@ -1,9 +1,10 @@
 import os
 from secrets import token_hex
+from typing import Optional
 from dotenv import load_dotenv
 from codehub.cli.gcp.terraform import TerraformOutput
 from codehub.cli.helpers import read_yaml, run_cmd, copy_file, fill_file_placeholders
-from codehub.cli.config import STRUCTURE
+from codehub.cli.config import STRUCTURE, OAuthConfig
 
 
 def create_deploy(
@@ -13,11 +14,10 @@ def create_deploy(
     cloud_state: TerraformOutput,
     contact_email=None,
     https=None,
-    client_id=None,
-    client_secret=None,
+    oauth_config: Optional[OAuthConfig] = None,
     admins=[],
 ):
-    config_fps = __get_config_fps(https=https, oauth=(client_id and client_secret))
+    config_fps = __get_config_fps(https=https, oauth=oauth_config is not None)
     template_fp = __build_template(hub_deploy_dir, config_fps)
 
     placeholder_replacements = read_yaml(
@@ -27,8 +27,11 @@ def create_deploy(
     placeholder_replacements["CLUSTER_NAME"] = cluster_name
     placeholder_replacements["HOST_NAME"] = https
     placeholder_replacements["CONTACT_EMAIL"] = contact_email
-    placeholder_replacements["GITHUB_OAUTH_CLIENT_ID"] = client_id
-    placeholder_replacements["GITHUB_OAUTH_CLIENT_SECRET"] = client_secret
+    if oauth_config is not None:
+        placeholder_replacements["GITHUB_OAUTH_CLIENT_ID"] = oauth_config.client_id
+        placeholder_replacements["GITHUB_OAUTH_CLIENT_SECRET"] = (
+            oauth_config.client_secret
+        )
 
     if "admin" not in admins:
         admins.append("admin")

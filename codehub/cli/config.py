@@ -44,3 +44,9 @@ class CreateConfig:
     region: str
     zone: str
     machine_type: str
+
+
+@dataclass
+class OAuthConfig:
+    client_id: str
+    client_secret: str
