@@ -2,14 +2,19 @@ import datetime
 import os
 import logging
 import json
-from typing import Optional
 from codehub.cli.gcp.terraform import (
     setup_terraform,
     terraform_apply,
     terraform_output,
 )
 from distutils.dir_util import copy_tree
-from codehub.cli.config import STRUCTURE, CreateConfig, DeployConfig, OAuthConfig
+from codehub.cli.config import (
+    STRUCTURE,
+    CreateConfig,
+    DeployConfig,
+    HubConfig,
+    UpgradeConfig,
+)
 from codehub.cli.gcp.helpers import authenticate_k8s_GKE
 from codehub.cli.k8s.create import create_k8s_resources
 from codehub.cli.helm.create import create_deploy
@@ -48,10 +53,11 @@ def create(config: CreateConfig):
     deploy_config = DeployConfig(
         config.name, config.region, helm_dir, hub_dir, k8s_dir, cloud_state
     )
+    hub_config = HubConfig(config.admins)
 
     __create_k8s_resources(deploy_config)
 
-    __create_deploy(deploy_config, admins=config.admins)
+    __create_deploy(deploy_config, hub_config)
     install_helm_chart(deploy_config, upgrade=False)
 
     wait_for_hub_to_get_ready(k8s_dir)
@@ -59,28 +65,28 @@ def create(config: CreateConfig):
     return get_ip(config.name, k8s_dir)
 
 
-def upgrade(name, admins, https=None, oauth_config: Optional[OAuthConfig] = None):
-    old_deploy_dir = get_latest_deployment(name=name)
+def upgrade(config: UpgradeConfig):
+    old_deploy_dir = get_latest_deployment(config.name)
 
     helm_dir, hub_dir, k8s_dir, cloud_dir = __upgrade_deploy_structure(
-        name, old_deploy_dir
+        config.name, old_deploy_dir
     )
     cloud_state = terraform_output(cloud_dir=cloud_dir)
 
     region = read_yaml(os.path.join(old_deploy_dir, "helm", "chart.yaml"))["install"][
         "region"
     ]
-    deploy_config = DeployConfig(name, region, helm_dir, hub_dir, k8s_dir, cloud_state)
+    deploy_config = DeployConfig(
+        config.name, region, helm_dir, hub_dir, k8s_dir, cloud_state
+    )
 
     __create_deploy(
         deploy_config,
-        admins=admins,
-        https=https,
-        oauth_config=oauth_config,
+        config.hub_config,
     )
     install_helm_chart(deploy_config, upgrade=True)
 
-    authenticate_k8s_GKE(name)
+    authenticate_k8s_GKE(config.name)
     wait_for_hub_to_get_ready(k8s_dir)
 
 
@@ -134,18 +140,9 @@ def __create_k8s_resources(deploy_config: DeployConfig):
 
 def __create_deploy(
     deploy_config: DeployConfig,
-    admins,
-    https=None,
-    oauth_config: Optional[OAuthConfig] = None,
+    hub_config: HubConfig,
 ):
-    contact_email = None
     with open(STRUCTURE["secrets"]["gcp"]["sa"], "rt") as f:
-        contact_email = json.loads(f.read())["client_email"]
+        hub_config.contact_email = json.loads(f.read())["client_email"]
 
-    create_deploy(
-        deploy_config,
-        contact_email=contact_email,
-        admins=admins,
-        https=https,
-        oauth_config=oauth_config,
-    )
+    create_deploy(deploy_config, hub_config)

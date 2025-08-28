@@ -1,19 +1,18 @@
 import os
 from secrets import token_hex
-from typing import Optional
 from dotenv import load_dotenv
 from codehub.cli.helpers import read_yaml, copy_file, fill_file_placeholders
-from codehub.cli.config import STRUCTURE, DeployConfig, OAuthConfig
+from codehub.cli.config import STRUCTURE, DeployConfig, HubConfig
 
 
 def create_deploy(
     deploy_config: DeployConfig,
-    contact_email=None,
-    https=None,
-    oauth_config: Optional[OAuthConfig] = None,
-    admins=[],
+    hub_config: HubConfig,
 ):
-    config_fps = __get_config_fps(https=https, oauth=oauth_config is not None)
+    oauth_config = hub_config.oauth_config
+    config_fps = __get_config_fps(
+        https=hub_config.https, oauth=oauth_config is not None
+    )
     template_fp = __build_template(deploy_config.hub_dir, config_fps)
 
     placeholder_replacements = read_yaml(
@@ -21,14 +20,15 @@ def create_deploy(
     )
     placeholder_replacements["SECRET_TOKEN"] = token_hex(32)
     placeholder_replacements["CLUSTER_NAME"] = deploy_config.name
-    placeholder_replacements["HOST_NAME"] = https
-    placeholder_replacements["CONTACT_EMAIL"] = contact_email
+    placeholder_replacements["HOST_NAME"] = hub_config.https
+    placeholder_replacements["CONTACT_EMAIL"] = hub_config.contact_email
     if oauth_config is not None:
         placeholder_replacements["GITHUB_OAUTH_CLIENT_ID"] = oauth_config.client_id
         placeholder_replacements["GITHUB_OAUTH_CLIENT_SECRET"] = (
             oauth_config.client_secret
         )
 
+    admins = hub_config.admins.copy()
     if "admin" not in admins:
         admins.append("admin")
 

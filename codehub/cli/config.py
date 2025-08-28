@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 import os
 from pathlib import Path
-
-from codehub.cli.gcp.terraform import TerraformOutput
+from typing import Optional
 
 
 ROOT = Path(__file__).parents[2]
@@ -40,12 +39,16 @@ CLUSTER_MAX_LEN = 14
 
 
 @dataclass
-class CreateConfig:
-    name: str
-    admins: list[str]
-    region: str
-    zone: str
-    machine_type: str
+class CloudState:
+    nfs_ip: str
+    nfs_name: str
+    cluster_id: str
+    hub_sa_key: str
+    cluster_endpoint: str
+    cluster_cert: str
+    gcp_token: str
+    docker_registry_hostname: str
+    docker_image: str
 
 
 @dataclass
@@ -55,10 +58,33 @@ class OAuthConfig:
 
 
 @dataclass
+class HubConfig:
+    admins: list[str]
+    https: Optional[str] = None
+    oauth_config: Optional[OAuthConfig] = None
+    contact_email: Optional[str] = None
+
+
+@dataclass
+class CreateConfig:
+    name: str
+    admins: list[str]
+    region: str
+    zone: str
+    machine_type: str
+
+
+@dataclass
+class UpgradeConfig:
+    name: str
+    hub_config: HubConfig
+
+
+@dataclass
 class DeployConfig:
     name: str
     region: str
     helm_dir: str
     hub_dir: str
     k8s_dir: str
-    cloud_state: TerraformOutput
+    cloud_state: CloudState

@@ -2,7 +2,7 @@ from typing import Optional
 import click
 import logging
 import sys
-from codehub.cli.config import CreateConfig, OAuthConfig
+from codehub.cli.config import CreateConfig, HubConfig, OAuthConfig, UpgradeConfig
 from codehub.cli.create import create, upgrade, scale, create_infrastructure
 from codehub.cli.delete import delete
 from codehub.cli.helpers import check_commands, validate_cluster_name, check_credentials
@@ -61,10 +61,14 @@ def upgradecluster(name, admin, https=None, client_id=None, client_secret=None):
     logger = logging.getLogger(__name__)
     logger.info(f"Updating cluster '{name}'")
 
-    oauth_config: Optional[OAuthConfig] = None
+    hub_config = HubConfig([i.lower() for i in admin])
+
     if https is not None:
+        hub_config.https = https
         if client_id and client_secret:
-            oauth_config = OAuthConfig(client_id=client_id, client_secret=client_secret)
+            hub_config.oauth_config = OAuthConfig(
+                client_id=client_id, client_secret=client_secret
+            )
         # None or both need to be passed
         elif client_id or client_secret:
             raise ValueError(
@@ -74,14 +78,9 @@ def upgradecluster(name, admin, https=None, client_id=None, client_secret=None):
                 + "`--client-secret` <github-client-secret>"
             )
 
-    admins = [i.lower() for i in admin]
+    config = UpgradeConfig(name, hub_config)
 
-    res = upgrade(
-        name=name,
-        admins=admins,
-        https=https,
-        oauth_config=oauth_config,
-    )
+    res = upgrade(config)
 
     logger.debug(f"{upgrade.__module__}.{upgrade.__name__} output:")
     logger.debug(res)
