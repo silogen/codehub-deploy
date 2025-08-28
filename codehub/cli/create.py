@@ -9,7 +9,7 @@ from codehub.cli.gcp.terraform import (
     terraform_output,
 )
 from distutils.dir_util import copy_tree
-from codehub.cli.config import STRUCTURE
+from codehub.cli.config import STRUCTURE, CreateConfig
 from codehub.cli.gcp.helpers import authenticate_k8s_GKE
 from codehub.cli.k8s.create import create_k8s_resources
 from codehub.cli.helm.create import create_deploy
@@ -19,59 +19,53 @@ from codehub.cli.manage import wait_for_hub_to_get_ready, get_ip
 import kubernetes.client.rest  # Add this import for the exception handling
 
 
-def create_infrastructure(name, region, zone, machine_type):
-    _, _, k8s_dir, cloud_dir = __create_deploy_structure(name)
+def create_infrastructure(config: CreateConfig):
+    _, _, k8s_dir, cloud_dir = __create_deploy_structure(config.name)
 
     setup_terraform(
-        cluster_name=name,
-        region=region,
-        zone=zone,
-        machine_type=machine_type,
-        cloud_dir=cloud_dir,
-    )
-
-    cloud_config = terraform_apply(cloud_dir=cloud_dir)
-    __create_k8s_resources(
-        name,
-        deploy_dir=k8s_dir,
-        nfs_name=cloud_config.nfs_name,
-        nfs_ip=cloud_config.nfs_ip,
-    )
-
-    return get_ip(name, k8s_dir)
-
-
-def create(name, admins, region, zone, machine_type):
-    helm_dir, hub_dir, k8s_dir, cloud_dir = __create_deploy_structure(name)
-
-    setup_terraform(
-        cluster_name=name,
-        region=region,
-        zone=zone,
-        machine_type=machine_type,
+        config=config,
         cloud_dir=cloud_dir,
     )
 
     cloud_state = terraform_apply(cloud_dir=cloud_dir)
     __create_k8s_resources(
-        name,
+        config.name,
+        deploy_dir=k8s_dir,
+        nfs_name=cloud_state.nfs_name,
+        nfs_ip=cloud_state.nfs_ip,
+    )
+
+    return get_ip(config.name, k8s_dir)
+
+
+def create(config: CreateConfig):
+    helm_dir, hub_dir, k8s_dir, cloud_dir = __create_deploy_structure(config.name)
+
+    setup_terraform(
+        config=config,
+        cloud_dir=cloud_dir,
+    )
+
+    cloud_state = terraform_apply(cloud_dir=cloud_dir)
+    __create_k8s_resources(
+        config.name,
         deploy_dir=k8s_dir,
         nfs_name=cloud_state.nfs_name,
         nfs_ip=cloud_state.nfs_ip,
     )
 
     __install_helm_chart(
-        name,
-        region=region,
+        config.name,
+        region=config.region,
         helm_deploy_dir=helm_dir,
         hub_deploy_dir=hub_dir,
         cloud_state=cloud_state,
-        admins=admins,
+        admins=config.admins,
     )
 
     wait_for_hub_to_get_ready(k8s_dir)
 
-    return get_ip(name, k8s_dir)
+    return get_ip(config.name, k8s_dir)
 
 
 def upgrade(name, admins, https=None, client_id=None, client_secret=None):

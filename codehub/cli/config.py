@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 from pathlib import Path
 
@@ -34,3 +35,12 @@ SLEEP_TIME = 5
 SLEEP_THRESHOLD = 600
 TIMEOUT_ERROR = "Timeout expired."
 CLUSTER_MAX_LEN = 14
+
+
+@dataclass
+class CreateConfig:
+    name: str
+    admins: list[str]
+    region: str
+    zone: str
+    machine_type: str

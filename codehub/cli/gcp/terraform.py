@@ -3,7 +3,7 @@ import json
 import os
 from typing import Any, List, Optional
 from distutils.dir_util import copy_tree
-from codehub.cli.config import STRUCTURE
+from codehub.cli.config import STRUCTURE, CreateConfig
 from codehub.cli.helpers import (
     fill_file_placeholders,
     run_cmd,
@@ -26,10 +26,7 @@ class TerraformOutput:
 
 def setup_terraform(
     *,
-    cluster_name: str,
-    region: str,
-    zone: str,
-    machine_type: str,
+    config: CreateConfig,
     cloud_dir: str,
 ) -> None:
     copy_tree(STRUCTURE["templates"]["cloud"], cloud_dir)
@@ -38,10 +35,10 @@ def setup_terraform(
     gcp_project = _get_project_from_sa(gcp_sa_path)
 
     placeholder_replacements = dict(
-        CLUSTER_NAME=cluster_name,
-        REGION=region,
-        ZONE=zone,
-        MACHINE_TYPE=machine_type,
+        CLUSTER_NAME=config.name,
+        REGION=config.region,
+        ZONE=config.zone,
+        MACHINE_TYPE=config.machine_type,
         GCP_SA_PATH=gcp_sa_path,
         GCP_PROJECT_NAME=gcp_project,
     )

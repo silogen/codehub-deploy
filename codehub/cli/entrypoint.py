@@ -1,6 +1,7 @@
 import click
 import logging
 import sys
+from codehub.cli.config import CreateConfig
 from codehub.cli.create import create, upgrade, scale, create_infrastructure
 from codehub.cli.delete import delete
 from codehub.cli.helpers import check_commands, validate_cluster_name, check_credentials
@@ -37,15 +38,10 @@ def createcluster(name, admin, region, zone, machine_type):
     logger = logging.getLogger(__name__)
     logger.info(f"Creating cluster '{name}'")
 
-    admins = [i.lower() for i in admin]
+    admins = [user.lower() for user in admin]
+    config = CreateConfig(name, admins, region, zone, machine_type)
 
-    res = create(
-        name=name,
-        admins=admins,
-        region=region,
-        zone=zone,
-        machine_type=machine_type,
-    )
+    res = create(config)
 
     logger.debug(f"{create.__module__}.{create.__name__} output:")
     logger.debug(res)
@@ -153,12 +149,10 @@ def createclusterinfra(name, region, zone, machine_type):
     logger = logging.getLogger(__name__)
     logger.info(f"Creating cluster '{name}'")
 
-    res = create_infrastructure(
-        name=name,
-        region=region,
-        zone=zone,
-        machine_type=machine_type,
-    )
+    admins = []
+    config = CreateConfig(name, admins, region, zone, machine_type)
+
+    res = create_infrastructure(config)
 
     logger.debug(f"{create.__module__}.{create.__name__} output:")
     logger.debug(res)
