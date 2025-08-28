@@ -20,11 +20,11 @@ from codehub.cli.k8s.create import create_k8s_resources
 from codehub.cli.helm.create import create_deploy
 from codehub.cli.helm.install import install_helm_chart
 from codehub.cli.helpers import get_cloud_dir, get_latest_deployment, read_yaml
-from codehub.cli.manage import wait_for_hub_to_get_ready, get_ip
+from codehub.cli.manage import wait_for_hub_to_get_ready
 import kubernetes.client.rest  # Add this import for the exception handling
 
 
-def create_infrastructure(config: CreateConfig):
+def create_infrastructure(config: CreateConfig) -> DeployConfig:
     helm_dir, hub_dir, k8s_dir, cloud_dir = __create_deploy_structure(config.name)
 
     setup_terraform(
@@ -38,21 +38,11 @@ def create_infrastructure(config: CreateConfig):
     )
     __create_k8s_resources(deploy_config)
 
-    return get_ip(config.name, k8s_dir)
+    return deploy_config
 
 
-def create(config: CreateConfig):
-    helm_dir, hub_dir, k8s_dir, cloud_dir = __create_deploy_structure(config.name)
-
-    setup_terraform(
-        config=config,
-        cloud_dir=cloud_dir,
-    )
-
-    cloud_state = terraform_apply(cloud_dir=cloud_dir)
-    deploy_config = DeployConfig(
-        config.name, config.region, helm_dir, hub_dir, k8s_dir, cloud_state
-    )
+def create(config: CreateConfig) -> DeployConfig:
+    deploy_config = create_infrastructure(config)
     hub_config = HubConfig(config.admins)
 
     __create_k8s_resources(deploy_config)
@@ -60,9 +50,9 @@ def create(config: CreateConfig):
     __create_deploy(deploy_config, hub_config)
     install_helm_chart(deploy_config, upgrade=False)
 
-    wait_for_hub_to_get_ready(k8s_dir)
+    wait_for_hub_to_get_ready(deploy_config.k8s_dir)
 
-    return get_ip(config.name, k8s_dir)
+    return deploy_config
 
 
 def upgrade(config: UpgradeConfig):

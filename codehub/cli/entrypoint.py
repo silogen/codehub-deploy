@@ -42,7 +42,8 @@ def createcluster(name, admin, region, zone, machine_type):
     admins = [user.lower() for user in admin]
     config = CreateConfig(name, admins, region, zone, machine_type)
 
-    res = create(config)
+    deploy_config = create(config)
+    res = get_ip(name, deploy_config.k8s_dir)
 
     logger.debug(f"{create.__module__}.{create.__name__} output:")
     logger.debug(res)
@@ -152,7 +153,8 @@ def createclusterinfra(name, region, zone, machine_type):
     admins = []
     config = CreateConfig(name, admins, region, zone, machine_type)
 
-    res = create_infrastructure(config)
+    deploy_config = create_infrastructure(config)
+    res = get_ip(name, deploy_config.k8s_dir)
 
     logger.debug(f"{create.__module__}.{create.__name__} output:")
     logger.debug(res)
