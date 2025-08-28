@@ -4,13 +4,12 @@ import logging
 import json
 from typing import Optional
 from codehub.cli.gcp.terraform import (
-    TerraformOutput,
     setup_terraform,
     terraform_apply,
     terraform_output,
 )
 from distutils.dir_util import copy_tree
-from codehub.cli.config import STRUCTURE, CreateConfig, OAuthConfig
+from codehub.cli.config import STRUCTURE, CreateConfig, DeployConfig, OAuthConfig
 from codehub.cli.gcp.helpers import authenticate_k8s_GKE
 from codehub.cli.k8s.create import create_k8s_resources
 from codehub.cli.helm.create import create_deploy
@@ -21,7 +20,7 @@ import kubernetes.client.rest  # Add this import for the exception handling
 
 
 def create_infrastructure(config: CreateConfig):
-    _, _, k8s_dir, cloud_dir = __create_deploy_structure(config.name)
+    helm_dir, hub_dir, k8s_dir, cloud_dir = __create_deploy_structure(config.name)
 
     setup_terraform(
         config=config,
@@ -29,12 +28,10 @@ def create_infrastructure(config: CreateConfig):
     )
 
     cloud_state = terraform_apply(cloud_dir=cloud_dir)
-    __create_k8s_resources(
-        config.name,
-        deploy_dir=k8s_dir,
-        nfs_name=cloud_state.nfs_name,
-        nfs_ip=cloud_state.nfs_ip,
+    deploy_config = DeployConfig(
+        config.name, config.region, helm_dir, hub_dir, k8s_dir, cloud_state
     )
+    __create_k8s_resources(deploy_config)
 
     return get_ip(config.name, k8s_dir)
 
@@ -48,19 +45,14 @@ def create(config: CreateConfig):
     )
 
     cloud_state = terraform_apply(cloud_dir=cloud_dir)
-    __create_k8s_resources(
-        config.name,
-        deploy_dir=k8s_dir,
-        nfs_name=cloud_state.nfs_name,
-        nfs_ip=cloud_state.nfs_ip,
+    deploy_config = DeployConfig(
+        config.name, config.region, helm_dir, hub_dir, k8s_dir, cloud_state
     )
 
+    __create_k8s_resources(deploy_config)
+
     __install_helm_chart(
-        config.name,
-        region=config.region,
-        helm_deploy_dir=helm_dir,
-        hub_deploy_dir=hub_dir,
-        cloud_state=cloud_state,
+        deploy_config,
         admins=config.admins,
     )
 
@@ -77,16 +69,13 @@ def upgrade(name, admins, https=None, oauth_config: Optional[OAuthConfig] = None
     )
     cloud_state = terraform_output(cloud_dir=cloud_dir)
 
-    last_helm_install = read_yaml(os.path.join(old_deploy_dir, "helm", "chart.yaml"))[
-        "install"
+    region = read_yaml(os.path.join(old_deploy_dir, "helm", "chart.yaml"))["install"][
+        "region"
     ]
+    deploy_config = DeployConfig(name, region, helm_dir, hub_dir, k8s_dir, cloud_state)
 
     __upgrade_helm_chart(
-        name,
-        region=last_helm_install["region"],
-        helm_deploy_dir=helm_dir,
-        hub_deploy_dir=hub_dir,
-        cloud_state=cloud_state,
+        deploy_config,
         admins=admins,
         https=https,
         oauth_config=oauth_config,
@@ -130,10 +119,10 @@ def __upgrade_deploy_structure(name, old_deploy_dir):
     return helm_dir, hub_dir, k8s_dir, cloud_dir
 
 
-def __create_k8s_resources(name, deploy_dir, nfs_name, nfs_ip):
-    authenticate_k8s_GKE(name)
+def __create_k8s_resources(deploy_config: DeployConfig):
+    authenticate_k8s_GKE(deploy_config.name)
     try:
-        create_k8s_resources(deploy_dir, nfs_name, nfs_ip)
+        create_k8s_resources(deploy_config)
     except kubernetes.client.rest.ApiException as e:
         logger = logging.getLogger(__name__)
         # If the error is due to a resource already existing, we can continue
@@ -145,52 +134,31 @@ def __create_k8s_resources(name, deploy_dir, nfs_name, nfs_ip):
 
 
 def __install_helm_chart(
-    name,
-    region,
-    helm_deploy_dir,
-    hub_deploy_dir,
-    cloud_state: TerraformOutput,
+    deploy_config: DeployConfig,
     admins,
 ):
-    __create_deploy(name, helm_deploy_dir, hub_deploy_dir, cloud_state, admins)
-    install_helm_chart(
-        name,
-        region=region,
-        helm_deploy_dir=helm_deploy_dir,
-        hub_deploy_dir=hub_deploy_dir,
-    )
+    __create_deploy(deploy_config, admins)
+    install_helm_chart(deploy_config)
 
 
 def __upgrade_helm_chart(
-    name,
-    region,
-    helm_deploy_dir,
-    hub_deploy_dir,
-    cloud_state: TerraformOutput,
+    deploy_config: DeployConfig,
     admins,
     https=None,
     oauth_config: Optional[OAuthConfig] = None,
 ):
     __create_deploy(
-        name,
-        helm_deploy_dir,
-        hub_deploy_dir,
-        cloud_state=cloud_state,
+        deploy_config,
         admins=admins,
         https=https,
         oauth_config=oauth_config,
     )
 
-    upgrade_helm_chart(
-        name, region, helm_deploy_dir=helm_deploy_dir, hub_deploy_dir=hub_deploy_dir
-    )
+    upgrade_helm_chart(deploy_config)
 
 
 def __create_deploy(
-    name,
-    helm_deploy_dir,
-    hub_deploy_dir,
-    cloud_state: TerraformOutput,
+    deploy_config: DeployConfig,
     admins,
     https=None,
     oauth_config: Optional[OAuthConfig] = None,
@@ -200,12 +168,9 @@ def __create_deploy(
         contact_email = json.loads(f.read())["client_email"]
 
     create_deploy(
-        name,
+        deploy_config,
         contact_email=contact_email,
         admins=admins,
-        helm_deploy_dir=helm_deploy_dir,
-        hub_deploy_dir=hub_deploy_dir,
-        cloud_state=cloud_state,
         https=https,
         oauth_config=oauth_config,
     )

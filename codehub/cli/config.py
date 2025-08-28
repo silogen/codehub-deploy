@@ -2,6 +2,8 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 
+from codehub.cli.gcp.terraform import TerraformOutput
+
 
 ROOT = Path(__file__).parents[2]
 PACKAGE_ROOT = Path(__file__).parents[1]
@@ -50,3 +52,13 @@ class CreateConfig:
 class OAuthConfig:
     client_id: str
     client_secret: str
+
+
+@dataclass
+class DeployConfig:
+    name: str
+    region: str
+    helm_dir: str
+    hub_dir: str
+    k8s_dir: str
+    cloud_state: TerraformOutput

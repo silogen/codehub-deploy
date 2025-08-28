@@ -1,34 +1,28 @@
 import os
 from codehub.cli.helpers import run_cmd, read_yaml, fill_file_placeholders
-from codehub.cli.config import STRUCTURE
+from codehub.cli.config import STRUCTURE, DeployConfig
 
 
-def install_helm_chart(cluster_name, region, helm_deploy_dir, hub_deploy_dir):
-    __upgrade_or_install_helm_chart(
-        cluster_name, region, helm_deploy_dir, hub_deploy_dir, upgrade=False
-    )
+def install_helm_chart(deploy_config: DeployConfig):
+    __upgrade_or_install_helm_chart(deploy_config, upgrade=False)
 
 
-def upgrade_helm_chart(cluster_name, region, helm_deploy_dir, hub_deploy_dir):
-    __upgrade_or_install_helm_chart(
-        cluster_name, region, helm_deploy_dir, hub_deploy_dir, upgrade=True
-    )
+def upgrade_helm_chart(deploy_config: DeployConfig):
+    __upgrade_or_install_helm_chart(deploy_config, upgrade=True)
 
 
-def __upgrade_or_install_helm_chart(
-    cluster_name, region, helm_deploy_dir, hub_deploy_dir, upgrade=False
-):
+def __upgrade_or_install_helm_chart(deploy_config: DeployConfig, upgrade=False):
     chart_template_fp = os.path.join(STRUCTURE["templates"]["helm"], "chart.yaml")
-    chart_deploy_fp = os.path.join(helm_deploy_dir, "chart.yaml")
+    chart_deploy_fp = os.path.join(deploy_config.helm_dir, "chart.yaml")
 
-    placeholder_replacements = dict(REGION=region)
+    placeholder_replacements = dict(REGION=deploy_config.region)
     fill_file_placeholders(chart_template_fp, chart_deploy_fp, placeholder_replacements)
 
     helm_config = read_yaml(chart_deploy_fp)
     repo_config = helm_config["repo"]
     install_config = helm_config["install"]
 
-    config_file = os.path.join(hub_deploy_dir, "config.yaml")
+    config_file = os.path.join(deploy_config.hub_dir, "config.yaml")
 
     cmds = []
     cmds.append(
@@ -38,7 +32,7 @@ def __upgrade_or_install_helm_chart(
             "clusters",
             "get-credentials",
             f"--location={install_config['region']}",
-            cluster_name,
+            deploy_config.name,
         ]
     )
 

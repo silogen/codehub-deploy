@@ -1,11 +1,13 @@
 from kubernetes import client as k8s_client
 import os
 from codehub.cli.helpers import read_yaml, fill_file_placeholders
-from codehub.cli.config import STRUCTURE
+from codehub.cli.config import STRUCTURE, DeployConfig
 
 
-def create_k8s_resources(k8s_deploy_path, nfs_name, nfs_ip):
-    __create_cluster_role_binding(k8s_deploy_path)
+def create_k8s_resources(deploy_config: DeployConfig):
+    k8s_dir = deploy_config.k8s_dir
+
+    __create_cluster_role_binding(k8s_dir)
 
     namespace = read_yaml(
         os.path.join(STRUCTURE["templates"]["k8s"], "namespace.yaml")
@@ -13,9 +15,14 @@ def create_k8s_resources(k8s_deploy_path, nfs_name, nfs_ip):
 
     placeholder_replacements = {"NAMESPACE": namespace}
 
-    __create_namespace(k8s_deploy_path, placeholder_replacements)
-    __create_pvs(k8s_deploy_path, nfs_name, nfs_ip, placeholder_replacements)
-    __create_pvcs(k8s_deploy_path, nfs_name, nfs_ip, placeholder_replacements)
+    __create_namespace(k8s_dir, placeholder_replacements)
+    __create_pvs(
+        k8s_dir,
+        deploy_config.cloud_state.nfs_name,
+        deploy_config.cloud_state.nfs_ip,
+        placeholder_replacements,
+    )
+    __create_pvcs(k8s_dir, placeholder_replacements)
 
 
 def __create_cluster_role_binding(k8s_deploy_path):
@@ -50,7 +57,7 @@ def __create_pvs(k8s_deploy_path, nfs_name, nfs_ip, placeholder_replacements):
         )
 
 
-def __create_pvcs(k8s_deploy_path, nfs_name, nfs_ip, placeholder_replacements):
+def __create_pvcs(k8s_deploy_path, placeholder_replacements):
     for pvc in ["pvc-personal.yaml", "pvc-shared.yaml"]:
         __create_k8s_resource_from_template(
             client_call=k8s_client.CoreV1Api().create_namespaced_persistent_volume_claim,

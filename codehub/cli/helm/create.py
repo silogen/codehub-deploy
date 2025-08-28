@@ -2,29 +2,25 @@ import os
 from secrets import token_hex
 from typing import Optional
 from dotenv import load_dotenv
-from codehub.cli.gcp.terraform import TerraformOutput
-from codehub.cli.helpers import read_yaml, run_cmd, copy_file, fill_file_placeholders
-from codehub.cli.config import STRUCTURE, OAuthConfig
+from codehub.cli.helpers import read_yaml, copy_file, fill_file_placeholders
+from codehub.cli.config import STRUCTURE, DeployConfig, OAuthConfig
 
 
 def create_deploy(
-    cluster_name,
-    hub_deploy_dir,
-    helm_deploy_dir,
-    cloud_state: TerraformOutput,
+    deploy_config: DeployConfig,
     contact_email=None,
     https=None,
     oauth_config: Optional[OAuthConfig] = None,
     admins=[],
 ):
     config_fps = __get_config_fps(https=https, oauth=oauth_config is not None)
-    template_fp = __build_template(hub_deploy_dir, config_fps)
+    template_fp = __build_template(deploy_config.hub_dir, config_fps)
 
     placeholder_replacements = read_yaml(
         os.path.join(STRUCTURE["templates"]["hub"], "config_variables.yaml")
     )
     placeholder_replacements["SECRET_TOKEN"] = token_hex(32)
-    placeholder_replacements["CLUSTER_NAME"] = cluster_name
+    placeholder_replacements["CLUSTER_NAME"] = deploy_config.name
     placeholder_replacements["HOST_NAME"] = https
     placeholder_replacements["CONTACT_EMAIL"] = contact_email
     if oauth_config is not None:
@@ -44,6 +40,7 @@ def create_deploy(
     )
     placeholder_replacements["SUDOERS"] = " ".join(admins)
 
+    cloud_state = deploy_config.cloud_state
     placeholder_replacements["REGISTRY_HOSTNAME"] = cloud_state.docker_registry_hostname
     # The spaces after newline are important for the indentation in the yaml file
     placeholder_replacements["REGISTRY_PASSWORD"] = cloud_state.hub_sa_key.replace(
@@ -54,9 +51,9 @@ def create_deploy(
     if "DOCKER_IMAGE_TAG" not in placeholder_replacements:
         placeholder_replacements["DOCKER_IMAGE_TAG"] = "stable"
 
-    __add_config_content(hub_deploy_dir, template_fp, placeholder_replacements)
+    __add_config_content(deploy_config.hub_dir, template_fp, placeholder_replacements)
 
-    __add_helm_chart_config(helm_deploy_dir)
+    __add_helm_chart_config(deploy_config.helm_dir)
 
 
 def __get_config_fps(https=None, oauth=None):
