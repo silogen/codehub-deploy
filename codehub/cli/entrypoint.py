@@ -1,6 +1,8 @@
+from typing import Optional
 import click
 import logging
 import sys
+from codehub.cli.config import CreateConfig, HubConfig, OAuthConfig, UpgradeConfig
 from codehub.cli.create import create, upgrade, scale, create_infrastructure
 from codehub.cli.delete import delete
 from codehub.cli.helpers import check_commands, validate_cluster_name, check_credentials
@@ -37,15 +39,11 @@ def createcluster(name, admin, region, zone, machine_type):
     logger = logging.getLogger(__name__)
     logger.info(f"Creating cluster '{name}'")
 
-    admins = [i.lower() for i in admin]
+    admins = [user.lower() for user in admin]
+    config = CreateConfig(name, admins, region, zone, machine_type)
 
-    res = create(
-        name=name,
-        admins=admins,
-        region=region,
-        zone=zone,
-        machine_type=machine_type,
-    )
+    deploy_config = create(config)
+    res = get_ip(name, deploy_config.k8s_dir)
 
     logger.debug(f"{create.__module__}.{create.__name__} output:")
     logger.debug(res)
@@ -64,32 +62,31 @@ def upgradecluster(name, admin, https=None, client_id=None, client_secret=None):
     logger = logging.getLogger(__name__)
     logger.info(f"Updating cluster '{name}'")
 
-    https_passed = https is not None
-    client_id_passed = client_id is not None
-    client_secret_passed = client_secret is not None
-    passed_correct_args = https_passed and (client_id_passed is client_secret_passed)
-    passed_no_args = not https_passed and not (client_id_passed or client_secret_passed)
+    hub_config = HubConfig([i.lower() for i in admin])
 
-    admins = [i.lower() for i in admin]
+    if https is not None:
+        hub_config.https = https
+        if client_id and client_secret:
+            hub_config.oauth_config = OAuthConfig(
+                client_id=client_id, client_secret=client_secret
+            )
+        # None or both need to be passed
+        elif client_id or client_secret:
+            raise ValueError(
+                "To add oauth you need to pass the following arguments\n"
+                + "`--https` <host-name>\n"
+                + "`--client-id` <github-client-id>\n"
+                + "`--client-secret` <github-client-secret>"
+            )
 
-    if passed_correct_args or passed_no_args:
-        res = upgrade(
-            name=name,
-            admins=admins,
-            https=https,
-            client_id=client_id,
-            client_secret=client_secret,
-        )
+    config = UpgradeConfig(name, hub_config)
 
-        logger.debug(f"{upgrade.__module__}.{upgrade.__name__} output:")
-        logger.debug(res)
+    res = upgrade(config)
 
-        logger.info(f"Cluster '{name}' upgraded successfully")
-    else:
-        logger.warning("To add oauth you need to pass the following arguments")
-        logger.warning("`--https` <host-name>")
-        logger.warning("`--client-id` <github-client-id>")
-        logger.warning("`--client-secret` <github-client-secret>")
+    logger.debug(f"{upgrade.__module__}.{upgrade.__name__} output:")
+    logger.debug(res)
+
+    logger.info(f"Cluster '{name}' upgraded successfully")
 
 
 @cli.command()
@@ -153,12 +150,11 @@ def createclusterinfra(name, region, zone, machine_type):
     logger = logging.getLogger(__name__)
     logger.info(f"Creating cluster '{name}'")
 
-    res = create_infrastructure(
-        name=name,
-        region=region,
-        zone=zone,
-        machine_type=machine_type,
-    )
+    admins = []
+    config = CreateConfig(name, admins, region, zone, machine_type)
+
+    deploy_config = create_infrastructure(config)
+    res = get_ip(name, deploy_config.k8s_dir)
 
     logger.debug(f"{create.__module__}.{create.__name__} output:")
     logger.debug(res)
