@@ -295,13 +295,3 @@ When preparing for a release use the following workflow:
    and tag the corresponding commit with the release tag.
 8. Merge the release tag back into `develop` for continued development.
 
-### Continuous integration
-
-The project has continuous integration set up in the form of automatic linting
-with `flake8` using GitHub actions. Linting will be run on every push and pull
-request. To run the tests locally before pushing changes to the repository, run
-the following:
-
-```sh
-flake8 .
-```
