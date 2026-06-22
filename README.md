@@ -262,9 +262,9 @@ Temporary branches conform to the following naming convention:
 
 Use the following workflow when solving an issue:
 
-1. Make sure you are on the `develop` branch and that you have pulled all the
+1. Make sure you are on the `main` branch and that you have pulled all the
    latest changes to your local git repository.
-2. Create a new temporary branch from the `develop` branch following the above
+2. Create a new temporary branch from the `main` branch following the above
    naming convention using e.g.
 
    ```sh
@@ -274,24 +274,21 @@ Use the following workflow when solving an issue:
 3. Make and commit your changes to the temporary branch.
 4. Push your temporary branch to the GitHub repository.
 5. Open a pull request to merge the changes from your temporary branch into the
-   `develop` branch. Make sure to request at least one reviewer and mention
+   `main` branch. Make sure to request at least one reviewer and mention
    which issue will be closed by this pull request.
 6. After the changes have been accepted by the reviewer, merge the changes and
    delete the temporary branch after merging.
 
 When preparing for a release use the following workflow:
 
-1. Make sure all intended changes are merged into `develop`.
-2. Create a pull request to merge changes from `develop` into `acceptance` with all
+1. Make sure all intended changes are merged into `main` and create a new branch
+   `release/vX.Y.X`.
+2. Create a pull request to merge `release/vX.Y.Z` into `main` with all
    current developers as reviewers.
-3. Merge the changes after the review is accepted.
 4. Test the current state of the repository thoroughly to make sure everything
-   works as intended. If any issues are found make the changes to the `develop`
-   branch and repeat step 2.
-5. Create a pull request to merge `acceptance` into `master` with all current
-   developers as reviewers.
-6. Merge the changes after the review is accepted.
-7. Create a release on GitHub named `vX.Y.Z` according to semantic versioning
+   works as intended. If any issues are found make the changes to the `main`
+   branch and merge into `release/vX.Y.Z`.
+5. Create a release on GitHub named `vX.Y.Z` according to semantic versioning
    and tag the corresponding commit with the release tag.
-8. Merge the release tag back into `develop` for continued development.
+6. Merge the release tag back into `main` for continued development.
 
